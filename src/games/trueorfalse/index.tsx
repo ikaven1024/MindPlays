@@ -7,6 +7,7 @@ type Shape = 'square' | 'triangle'
 type Size = 'big' | 'small'
 type CardColor = 'red' | 'blue'
 type Dots = 1 | 2
+type Difficulty = 1 | 2
 
 interface Card {
   shape: Shape
@@ -41,9 +42,18 @@ const RULES: Rule[] = [
   { id: 7, label: '点数是两点', check: (c) => c.dots === 2 },
 ]
 
+// 4 个属性类别，每类 2 条互斥规则
+const RULE_CATEGORIES: [Rule, Rule][] = [
+  [RULES[0], RULES[1]], // 形状
+  [RULES[2], RULES[3]], // 大小
+  [RULES[4], RULES[5]], // 颜色
+  [RULES[6], RULES[7]], // 点数
+]
+
 const FILL_COLORS: Record<CardColor, string> = { red: '#EF4444', blue: '#3B82F6' }
 
-// 生成全部16张不重复卡片
+// ======================== 工具函数 ========================
+
 function generateCards(): Card[] {
   const cards: Card[] = []
   let id = 0
@@ -55,6 +65,24 @@ function generateCards(): Card[] {
   return cards
 }
 
+// 根据难度生成隐藏规则（二级时从不同类别选取，保证有牌能同时满足）
+function generateHiddenRules(difficulty: Difficulty): Rule[] {
+  if (difficulty === 1) {
+    return [RULES[Math.floor(Math.random() * RULES.length)]]
+  }
+  // 二级：随机选 2 个不同类别，每个类别随机选 1 条
+  const shuffled = [...RULE_CATEGORIES].sort(() => Math.random() - 0.5)
+  return [
+    shuffled[0][Math.floor(Math.random() * 2)],
+    shuffled[1][Math.floor(Math.random() * 2)],
+  ]
+}
+
+// 检查卡片是否满足所有隐藏规则
+function checkCard(card: Card, rules: Rule[]): boolean {
+  return rules.every((r) => r.check(card))
+}
+
 // ======================== 卡片 SVG 渲染 ========================
 
 function CardSVG({ card, w, h }: { card: Card; w: number; h: number }) {
@@ -63,7 +91,6 @@ function CardSVG({ card, w, h }: { card: Card; w: number; h: number }) {
   const fill = FILL_COLORS[card.color]
   const s = card.size === 'big' ? Math.min(w, h) * 0.32 : Math.min(w, h) * 0.2
 
-  // 形状：方形用 rect，三角用 polygon
   const shapeEl =
     card.shape === 'square' ? (
       <rect x={cx - s} y={cy - s} width={s * 2} height={s * 2} fill={fill} rx={s * 0.08} />
@@ -71,7 +98,6 @@ function CardSVG({ card, w, h }: { card: Card; w: number; h: number }) {
       <polygon points={`${cx},${cy - s} ${cx - s},${cy + s} ${cx + s},${cy + s}`} fill={fill} />
     )
 
-  // 圆点：三角形的视觉中心偏下（重心位置）
   const dotR = s * 0.18
   const dotY = card.shape === 'triangle' ? cy + s * 0.22 : cy
   const dotsEl =
@@ -132,11 +158,12 @@ export default function TrueOrFalse() {
   const allCards = useRef(generateCards()).current
   const historyEndRef = useRef<HTMLDivElement>(null)
 
-  // 游戏核心状态
+  // 难度与隐藏规则
+  const [difficulty, setDifficulty] = useState<Difficulty>(1)
+  const [hiddenRules, setHiddenRules] = useState<Rule[]>(() => generateHiddenRules(1))
+
+  // 游戏状态
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
-  const [hiddenRule, setHiddenRule] = useState<Rule>(
-    () => RULES[Math.floor(Math.random() * RULES.length)],
-  )
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [round, setRound] = useState(0)
   const [lastResult, setLastResult] = useState<boolean | null>(null)
@@ -144,12 +171,11 @@ export default function TrueOrFalse() {
 
   // 弹窗状态
   const [showGuess, setShowGuess] = useState(false)
-  const [guessId, setGuessId] = useState(-1)
+  const [guessIds, setGuessIds] = useState<number[]>([])
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
   const [showTip, setShowTip] = useState(false)
 
-  // 自动关闭提示弹窗
   const tipTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const showTipModal = useCallback(() => {
     setShowTip(true)
@@ -174,7 +200,7 @@ export default function TrueOrFalse() {
     }
     if (animating) return
 
-    const result = hiddenRule.check(selectedCard)
+    const result = checkCard(selectedCard, hiddenRules)
     const newRound = round + 1
     setRound(newRound)
     setHistory((prev) => [...prev, { card: selectedCard, result, round: newRound }])
@@ -190,29 +216,49 @@ export default function TrueOrFalse() {
       setSelectedCard(null)
       setLastResult(null)
     }, 1000)
-  }, [selectedCard, hiddenRule, round, animating, showTipModal])
+  }, [selectedCard, hiddenRules, round, animating, showTipModal])
+
+  // 猜规则弹窗：切换选中某条规则
+  const toggleGuess = useCallback(
+    (ruleId: number) => {
+      setGuessIds((prev) => {
+        if (prev.includes(ruleId)) return prev.filter((id) => id !== ruleId)
+        if (prev.length >= difficulty) return prev // 已达上限
+        return [...prev, ruleId]
+      })
+    },
+    [difficulty],
+  )
 
   const handleGuess = useCallback(() => {
-    if (guessId < 0) return
-    const correct = guessId === hiddenRule.id
+    if (guessIds.length !== difficulty) return
+    const correct =
+      guessIds.length === hiddenRules.length &&
+      guessIds.every((id) => hiddenRules.some((r) => r.id === id))
     setIsCorrect(correct)
     setShowGuess(false)
     setShowResult(true)
-    setGuessId(-1)
-  }, [guessId, hiddenRule])
+    setGuessIds([])
+  }, [guessIds, hiddenRules, difficulty])
 
-  const handleRestart = useCallback(() => {
+  // 重置游戏（可同时切换难度）
+  const handleRestart = useCallback((newDifficulty?: Difficulty) => {
+    const d = newDifficulty ?? difficulty
+    setDifficulty(d)
+    setHiddenRules(generateHiddenRules(d))
     setSelectedCard(null)
-    setHiddenRule(RULES[Math.floor(Math.random() * RULES.length)])
     setHistory([])
     setRound(0)
     setLastResult(null)
     setAnimating(false)
     setShowGuess(false)
     setShowResult(false)
-    setGuessId(-1)
+    setGuessIds([])
     setIsCorrect(false)
-  }, [])
+  }, [difficulty])
+
+  // 规则描述文本
+  const ruleLabel = hiddenRules.map((r) => r.label).join(' + ')
 
   // ---- 渲染 ----
 
@@ -225,13 +271,40 @@ export default function TrueOrFalse() {
           <h1 className="text-xl font-bold mt-2">True-False 逆向推理游戏</h1>
           <p className="text-slate-400 text-sm mt-0.5">猜隐藏规则，练逻辑思维</p>
         </div>
-        <button
-          onClick={handleRestart}
-          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white rounded-lg text-sm font-medium transition-all shrink-0"
-        >
-          重新开始
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* 难度切换 */}
+          <div className="flex bg-slate-700 rounded-lg p-0.5 text-sm">
+            {([1, 2] as Difficulty[]).map((d) => (
+              <button
+                key={d}
+                onClick={() => {
+                  if (d !== difficulty) handleRestart(d)
+                }}
+                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                  difficulty === d
+                    ? 'bg-indigo-500 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {d === 1 ? '一级' : '二级'}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => handleRestart()}
+            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 active:scale-95 text-white rounded-lg text-sm font-medium transition-all"
+          >
+            重新开始
+          </button>
+        </div>
       </div>
+
+      {/* 难度说明 */}
+      <p className="text-xs text-slate-500 mb-3">
+        {difficulty === 1
+          ? '当前难度：一级 — 隐藏 1 条规则'
+          : '当前难度：二级 — 隐藏 2 条规则（需同时满足）'}
+      </p>
 
       {/* ====== 中间核心区 ====== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -283,9 +356,10 @@ export default function TrueOrFalse() {
           {/* 卡片预览 */}
           <div className="flex-1 flex items-center justify-center min-h-[170px]">
             {selectedCard ? (
-              <div className={`transition-all duration-300 ${animating ? 'scale-110' : 'scale-100'}`}>
+              <div
+                className={`transition-all duration-300 ${animating ? 'scale-110' : 'scale-100'}`}
+              >
                 <CardSVG card={selectedCard} w={110} h={140} />
-                {/* 出牌反馈 */}
                 {lastResult !== null && (
                   <div
                     className={`text-center mt-2 text-lg font-bold ${
@@ -317,7 +391,7 @@ export default function TrueOrFalse() {
             </button>
             <button
               onClick={() => {
-                setGuessId(-1)
+                setGuessIds([])
                 setShowGuess(true)
               }}
               className="flex-1 py-3 rounded-lg font-medium text-sm transition-all active:scale-95
@@ -359,22 +433,33 @@ export default function TrueOrFalse() {
       {/* ====== 猜规则弹窗 ====== */}
       {showGuess && (
         <ModalOverlay onClose={() => setShowGuess(false)}>
-          <h3 className="text-lg font-bold mb-4 text-center">选择你认为的隐藏规则</h3>
-          <div className="space-y-2 mb-5">
-            {RULES.map((rule) => (
-              <button
-                key={rule.id}
-                onClick={() => setGuessId(rule.id)}
-                className={`w-full py-2.5 px-4 rounded-lg text-sm text-left transition-all
-                  ${
-                    guessId === rule.id
-                      ? 'bg-indigo-500 text-white ring-2 ring-indigo-300'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-              >
-                {rule.label}
-              </button>
-            ))}
+          <h3 className="text-lg font-bold mb-1 text-center">选择你认为的隐藏规则</h3>
+          <p className="text-center text-xs text-slate-400 mb-4">
+            {difficulty === 1 ? '请选择 1 条规则' : '请选择 2 条规则'}
+            {difficulty === 2 && (
+              <span className="ml-1 text-indigo-400">
+                （已选 {guessIds.length}/2）
+              </span>
+            )}
+          </p>
+          <div className="space-y-2 mb-5 max-h-64 overflow-y-auto pr-1">
+            {RULES.map((rule) => {
+              const selected = guessIds.includes(rule.id)
+              return (
+                <button
+                  key={rule.id}
+                  onClick={() => toggleGuess(rule.id)}
+                  className={`w-full py-2.5 px-4 rounded-lg text-sm text-left transition-all
+                    ${
+                      selected
+                        ? 'bg-indigo-500 text-white ring-2 ring-indigo-300'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                >
+                  {rule.label}
+                </button>
+              )
+            })}
           </div>
           <div className="flex gap-3">
             <button
@@ -385,7 +470,7 @@ export default function TrueOrFalse() {
             </button>
             <button
               onClick={handleGuess}
-              disabled={guessId < 0}
+              disabled={guessIds.length !== difficulty}
               className="flex-1 py-2.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               提交答案
@@ -403,10 +488,10 @@ export default function TrueOrFalse() {
                 <div className="text-5xl mb-3">🎉</div>
                 <h3 className="text-xl font-bold text-green-400 mb-1">恭喜你，答对啦！</h3>
                 <p className="text-slate-400 text-sm mb-6">
-                  隐藏规则是：{hiddenRule.label}
+                  隐藏规则是：{ruleLabel}
                 </p>
                 <button
-                  onClick={handleRestart}
+                  onClick={() => handleRestart()}
                   className="w-full py-2.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors"
                 >
                   重新开始
