@@ -308,7 +308,7 @@ export default function TrueOrFalse() {
 
       {/* ====== 中间核心区 ====== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        {/* 左侧：推理线索区 */}
+        {/* 左侧：推理线索区（True / False 双栏） */}
         <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700">
           <h2 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
             <span>📋</span> 出牌历史记录
@@ -316,39 +316,69 @@ export default function TrueOrFalse() {
               <span className="ml-auto text-xs text-slate-500">共 {round} 轮</span>
             )}
           </h2>
-          <div className="max-h-60 md:max-h-72 overflow-y-auto space-y-2 pr-1">
-            {history.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-10">
-                请先选择卡片出牌，收集线索吧
-              </p>
-            ) : (
-              history.map((item) => (
-                <div
-                  key={item.round}
-                  className={`flex items-center gap-2.5 p-2 rounded-lg transition-colors ${
-                    item.result
-                      ? 'bg-green-500/10 border border-green-500/20'
-                      : 'bg-red-500/10 border border-red-500/20'
-                  }`}
-                >
-                  <span className="text-xs text-slate-500 font-mono w-7 shrink-0">
-                    #{item.round}
-                  </span>
-                  <div className="shrink-0">
-                    <CardSVG card={item.card} w={36} h={46} />
-                  </div>
-                  <span
-                    className={`text-sm font-bold ${
-                      item.result ? 'text-green-400' : 'text-red-400'
-                    }`}
-                  >
-                    {item.result ? '✓ True' : '✗ False'}
-                  </span>
+          {history.length === 0 ? (
+            <p className="text-slate-500 text-sm text-center py-10">
+              请先选择卡片出牌，收集线索吧
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {/* True 栏 */}
+              <div>
+                <h3 className="text-xs font-bold text-green-400 mb-2 flex items-center gap-1">
+                  <span>✓</span> True
+                </h3>
+                <div className="space-y-2 max-h-52 md:max-h-64 overflow-y-auto pr-1">
+                  {history.filter((h) => h.result).length === 0 ? (
+                    <p className="text-slate-600 text-xs text-center py-4">暂无</p>
+                  ) : (
+                    history
+                      .filter((h) => h.result)
+                      .map((item) => (
+                        <div
+                          key={item.round}
+                          className="flex items-center gap-1.5 p-1.5 rounded-lg bg-green-500/10 border border-green-500/20"
+                        >
+                          <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                            #{item.round}
+                          </span>
+                          <div className="shrink-0">
+                            <CardSVG card={item.card} w={32} h={42} />
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
-              ))
-            )}
-            <div ref={historyEndRef} />
-          </div>
+              </div>
+              {/* False 栏 */}
+              <div>
+                <h3 className="text-xs font-bold text-red-400 mb-2 flex items-center gap-1">
+                  <span>✗</span> False
+                </h3>
+                <div className="space-y-2 max-h-52 md:max-h-64 overflow-y-auto pr-1">
+                  {history.filter((h) => !h.result).length === 0 ? (
+                    <p className="text-slate-600 text-xs text-center py-4">暂无</p>
+                  ) : (
+                    history
+                      .filter((h) => !h.result)
+                      .map((item) => (
+                        <div
+                          key={item.round}
+                          className="flex items-center gap-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20"
+                        >
+                          <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                            #{item.round}
+                          </span>
+                          <div className="shrink-0">
+                            <CardSVG card={item.card} w={32} h={42} />
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={historyEndRef} />
         </div>
 
         {/* 右侧：当前操作区 */}
