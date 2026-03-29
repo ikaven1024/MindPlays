@@ -85,11 +85,13 @@ function checkCard(card: Card, rules: Rule[]): boolean {
 
 // ======================== 卡片 SVG 渲染 ========================
 
-function CardSVG({ card, w, h }: { card: Card; w: number; h: number }) {
+function CardSVG({ card, size }: { card: Card; size: number }) {
+  const w = size
+  const h = size
   const cx = w / 2
   const cy = h / 2
   const fill = FILL_COLORS[card.color]
-  const s = card.size === 'big' ? Math.min(w, h) * 0.32 : Math.min(w, h) * 0.2
+  const s = card.size === 'big' ? size * 0.32 : size * 0.2
 
   const shapeEl =
     card.shape === 'square' ? (
@@ -342,7 +344,7 @@ export default function TrueOrFalse() {
                             #{item.round}
                           </span>
                           <div className="shrink-0">
-                            <CardSVG card={item.card} w={32} h={42} />
+                            <CardSVG card={item.card} size={36} />
                           </div>
                         </div>
                       ))
@@ -369,7 +371,7 @@ export default function TrueOrFalse() {
                             #{item.round}
                           </span>
                           <div className="shrink-0">
-                            <CardSVG card={item.card} w={32} h={42} />
+                            <CardSVG card={item.card} size={36} />
                           </div>
                         </div>
                       ))
@@ -389,7 +391,7 @@ export default function TrueOrFalse() {
               <div
                 className={`transition-all duration-300 ${animating ? 'scale-110' : 'scale-100'}`}
               >
-                <CardSVG card={selectedCard} w={110} h={140} />
+                <CardSVG card={selectedCard} size={120} />
                 {lastResult !== null && (
                   <div
                     className={`text-center mt-2 text-lg font-bold ${
@@ -402,7 +404,7 @@ export default function TrueOrFalse() {
                 )}
               </div>
             ) : (
-              <div className="text-slate-500 text-sm border-2 border-dashed border-slate-600 rounded-xl w-[110px] h-[140px] flex items-center justify-center">
+              <div className="text-slate-500 text-sm border-2 border-dashed border-slate-600 rounded-xl w-[120px] h-[120px] flex items-center justify-center">
                 请选一张卡片
               </div>
             )}
@@ -453,7 +455,7 @@ export default function TrueOrFalse() {
                   ${animating ? 'pointer-events-none opacity-70' : ''}
                 `}
               >
-                <CardSVG card={card} w={64} h={84} />
+                <CardSVG card={card} size={72} />
               </div>
             ))}
           </div>
