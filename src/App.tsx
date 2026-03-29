@@ -8,6 +8,7 @@ import Minesweeper from './games/minesweeper'
 import Sudoku from './games/sudoku'
 import Wordle from './games/wordle'
 import TrueOrFalse from './games/trueorfalse'
+import MakeNumbers from './games/makenumbers'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/sudoku" element={<Sudoku />} />
         <Route path="/wordle" element={<Wordle />} />
         <Route path="/trueorfalse" element={<TrueOrFalse />} />
+        <Route path="/makenumbers" element={<MakeNumbers />} />
       </Route>
     </Routes>
   )
