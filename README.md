@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+# MindPlays
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个思维游戏合集 Web 应用，收录了多款经典益智游戏，开箱即玩。
 
-Currently, two official plugins are available:
+## 包含游戏
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| 游戏 | 说明 |
+|------|------|
+| 井字棋 | 两人轮流在 3×3 棋盘落子，三子连线获胜 |
+| 记忆翻牌 | 翻开两张相同的牌进行配对，考验记忆力 |
+| 2048 | 滑动合并相同数字，目标达到 2048 |
+| 扫雷 | 翻开安全格子，根据数字推理标记地雷 |
+| 数独 | 9×9 格填入数字，每行每列每宫不重复 |
+| 猜单词 | 6 次机会猜出一个 5 字母英文单词 |
+| True-False | 逆向推理隐藏规则，锻炼逻辑思维 |
 
-## React Compiler
+## 技术栈
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **框架**: React 19 + TypeScript 5.9
+- **构建工具**: Vite 8
+- **样式**: Tailwind CSS 4
+- **路由**: react-router-dom 7
+- **包管理器**: pnpm
 
-## Expanding the ESLint configuration
+## 快速开始
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```bash
+# 安装依赖
+pnpm install
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# 启动开发服务器
+pnpm dev
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# 构建生产版本
+pnpm build
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 预览生产构建
+pnpm preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 项目结构
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── main.tsx              # 入口文件
+├── App.tsx               # 路由定义
+├── index.css             # 全局样式
+├── components/
+│   ├── Layout.tsx        # 全局布局（顶栏 + 内容区）
+│   ├── Home.tsx          # 首页，展示游戏列表
+│   └── BackButton.tsx    # 返回按钮组件
+└── games/
+    ├── tictactoe/        # 井字棋
+    ├── memory/           # 记忆翻牌
+    ├── 2048/             # 2048
+    ├── minesweeper/      # 扫雷
+    ├── sudoku/           # 数独
+    ├── wordle/           # 猜单词
+    └── trueorfalse/      # True-False 逻辑推理
+```
+
+## 添加新游戏
+
+1. 在 `src/games/` 下创建新目录和 `index.tsx` 文件
+2. 在 `App.tsx` 添加路由
+3. 在 `Home.tsx` 的 `games` 数组中添加入口
+
+## License
+
+MIT
