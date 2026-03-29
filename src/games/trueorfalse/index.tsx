@@ -43,11 +43,11 @@ const RULES: Rule[] = [
 ]
 
 // 4 个属性类别，每类 2 条互斥规则
-const RULE_CATEGORIES: [Rule, Rule][] = [
-  [RULES[0], RULES[1]], // 形状
-  [RULES[2], RULES[3]], // 大小
-  [RULES[4], RULES[5]], // 颜色
-  [RULES[6], RULES[7]], // 点数
+const RULE_CATEGORIES: { name: string; rules: [Rule, Rule] }[] = [
+  { name: '形状', rules: [RULES[0], RULES[1]] },
+  { name: '大小', rules: [RULES[2], RULES[3]] },
+  { name: '颜色', rules: [RULES[4], RULES[5]] },
+  { name: '点数', rules: [RULES[6], RULES[7]] },
 ]
 
 const FILL_COLORS: Record<CardColor, string> = { red: '#EF4444', blue: '#3B82F6' }
@@ -73,8 +73,8 @@ function generateHiddenRules(difficulty: Difficulty): Rule[] {
   // 二级：随机选 2 个不同类别，每个类别随机选 1 条
   const shuffled = [...RULE_CATEGORIES].sort(() => Math.random() - 0.5)
   return [
-    shuffled[0][Math.floor(Math.random() * 2)],
-    shuffled[1][Math.floor(Math.random() * 2)],
+    shuffled[0].rules[Math.floor(Math.random() * 2)],
+    shuffled[1].rules[Math.floor(Math.random() * 2)],
   ]
 }
 
@@ -132,19 +132,26 @@ function CardSVG({ card, size }: { card: Card; size: number }) {
 
 // ======================== 规则标签渲染 ========================
 
-// 单字形象化展示：形状用符号、大小用字号、颜色用字色、点数用圆点
+// 双行布局：分类名 + 符号
 function RuleTag({ id }: { id: number }) {
-  switch (id) {
-    case 0: return <span className="text-base leading-none">■</span>
-    case 1: return <span className="text-base leading-none">▲</span>
-    case 2: return <span className="text-xl font-black leading-none">大</span>
-    case 3: return <span className="text-xs font-bold leading-none">小</span>
-    case 4: return <span className="text-base font-bold leading-none text-red-500">红</span>
-    case 5: return <span className="text-base font-bold leading-none text-blue-500">蓝</span>
-    case 6: return <span className="text-base leading-none tracking-widest">●</span>
-    case 7: return <span className="text-base leading-none tracking-widest">●●</span>
-    default: return null
+  const entry: Record<number, { name: string; symbol: React.ReactNode }> = {
+    0: { name: '方形', symbol: <span className="text-base leading-none">■</span> },
+    1: { name: '三角', symbol: <span className="text-base leading-none">▲</span> },
+    2: { name: '大', symbol: <span className="text-xl font-black leading-none">大</span> },
+    3: { name: '小', symbol: <span className="text-xs font-bold leading-none">小</span> },
+    4: { name: '红', symbol: <span className="text-base font-bold leading-none text-red-500">红</span> },
+    5: { name: '蓝', symbol: <span className="text-base font-bold leading-none text-blue-500">蓝</span> },
+    6: { name: '一点', symbol: <span className="text-base leading-none tracking-widest">●</span> },
+    7: { name: '两点', symbol: <span className="text-base leading-none tracking-widest">●●</span> },
   }
+  const item = entry[id]
+  if (!item) return null
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[10px] text-slate-400 leading-none">{item.name}</span>
+      {item.symbol}
+    </div>
+  )
 }
 
 // ======================== 弹窗组件 ========================
@@ -192,6 +199,9 @@ export default function TrueOrFalse() {
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
   const [showTip, setShowTip] = useState(false)
+
+  // 新手引导状态
+  const [showOnboarding, setShowOnboarding] = useState(true)
 
   const tipTimer = useRef<ReturnType<typeof setTimeout>>(null)
   const showTipModal = useCallback(() => {
@@ -265,7 +275,15 @@ export default function TrueOrFalse() {
     setShowResult(false)
     setGuessIds([])
     setIsCorrect(false)
+    setShowOnboarding(true)
   }, [difficulty])
+
+  // 动态提示文本
+  const getHintText = () => {
+    if (history.length === 0) return '从牌库中选一张牌，点击「出牌」来探测隐藏规则'
+    if (history.length <= 2) return '观察卡片被分到 True 还是 False，找出规律'
+    return '在下方选择你认为的规则，提交答案'
+  }
 
   // 规则描述文本
   const ruleTags = hiddenRules.map((r) => r.id)
@@ -309,49 +327,80 @@ export default function TrueOrFalse() {
         </div>
       </div>
 
-      {/* 难度说明 */}
-      <p className="text-xs text-slate-500 mb-2">
-        {difficulty === 1
-          ? '当前难度：一级 — 隐藏 1 条规则，选 1 项提交'
-          : '当前难度：二级 — 隐藏 2 条规则（需同时满足），选 2 项提交'}
-      </p>
-
-      {/* 规则卡片选择区 */}
-      <div className="bg-slate-800/80 rounded-xl p-3 border border-slate-700 mb-4">
-        <div className="flex flex-wrap gap-2 justify-center">
-          {RULES.map((rule) => {
-            const selected = guessIds.includes(rule.id)
-            return (
-              <button
-                key={rule.id}
-                onClick={() => toggleGuess(rule.id)}
-                className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-200
-                  ${
-                    selected
-                      ? 'bg-indigo-500 text-white ring-2 ring-indigo-300 scale-105 shadow-lg shadow-indigo-500/30'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:scale-105'
-                  }`}
-              >
-                <RuleTag id={rule.id} />
-              </button>
-            )
-          })}
-          {/* 提交按钮 */}
+      {/* ====== 新手引导卡片 ====== */}
+      {showOnboarding && history.length === 0 && (
+        <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 mb-4">
+          <h2 className="text-sm font-bold text-indigo-300 mb-2">玩法说明</h2>
+          <ol className="text-xs text-slate-300 space-y-1 list-decimal list-inside mb-3">
+            <li>系统隐藏了 {difficulty === 1 ? '1' : '2'} 条规则（如「颜色是红色」）</li>
+            <li>从牌库选一张牌，点击「出牌」</li>
+            <li>系统告诉你这张牌是 True（符合）还是 False（不符合）</li>
+            <li>多出几张牌收集线索，推理出隐藏规则</li>
+            <li>在底部选择规则并提交</li>
+          </ol>
           <button
-            onClick={handleGuess}
-            disabled={guessIds.length !== difficulty}
-            className="h-14 px-5 rounded-xl font-medium text-sm transition-all active:scale-95
-              bg-amber-500 hover:bg-amber-600 text-white shrink-0
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+            onClick={() => setShowOnboarding(false)}
+            className="w-full py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors"
           >
-            提交
+            开始游戏
           </button>
         </div>
-        {difficulty === 2 && (
-          <p className={`text-center text-xs mt-2 ${guessIds.length > 2 ? 'text-red-400' : 'text-slate-500'}`}>
-            已选 {guessIds.length}/2
-          </p>
-        )}
+      )}
+
+      {/* ====== 动态提示条 ====== */}
+      <div className="bg-slate-800/50 rounded-lg px-3 py-2 mb-4 flex items-center gap-2">
+        <span className="text-amber-400 text-sm shrink-0">💡</span>
+        <p className="text-xs text-slate-400">{getHintText()}</p>
+        <span className="ml-auto text-xs text-slate-600 shrink-0">
+          {difficulty === 1 ? '一级 · 选1项' : '二级 · 选2项'}
+        </span>
+      </div>
+
+      {/* ====== 牌库 + 出牌按钮（第一步操作，最醒目）====== */}
+      <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 mb-4">
+        <h2 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+          <span>🎴</span> 选择一张牌进行出牌
+          {selectedCard && (
+            <button
+              onClick={handlePlay}
+              disabled={animating}
+              className="ml-auto px-4 py-1.5 rounded-lg font-medium text-sm transition-all active:scale-95
+                bg-emerald-500 hover:bg-emerald-600 text-white
+                disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              出牌
+            </button>
+          )}
+        </h2>
+        <div className="grid grid-cols-8 gap-1.5 justify-items-center">
+          {allCards
+            .filter((card) => !history.some((h) => h.card.id === card.id))
+            .sort((a, b) => {
+              const shape = a.shape.localeCompare(b.shape)
+              if (shape !== 0) return shape
+              const color = a.color.localeCompare(b.color)
+              if (color !== 0) return color
+              const size = a.size.localeCompare(b.size)
+              if (size !== 0) return size
+              return a.dots - b.dots
+            })
+            .map((card) => (
+            <div
+              key={card.id}
+              onClick={() => handleSelect(card)}
+              className={`cursor-pointer rounded-lg p-0.5 transition-all duration-200
+                ${
+                  selectedCard?.id === card.id
+                    ? 'ring-2 ring-indigo-400 scale-110 shadow-lg shadow-indigo-500/30'
+                    : 'hover:scale-105 hover:shadow-md'
+                }
+                ${animating ? 'pointer-events-none opacity-70' : ''}
+              `}
+            >
+              <CardSVG card={card} size={56} />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ====== 出牌历史记录 ====== */}
@@ -405,42 +454,49 @@ export default function TrueOrFalse() {
         <div ref={historyEndRef} />
       </div>
 
-      {/* ====== 底部牌库区 ====== */}
-      <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700">
+      {/* ====== 规则选择区（按类别分组）====== */}
+      <div className="bg-slate-800/80 rounded-xl p-3 border border-slate-700">
         <h2 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-          <span>🎴</span> 牌库
+          <span>🔍</span> 选择你猜的规则
         </h2>
-        <div className="flex items-center gap-3">
-          <div className="overflow-x-auto overflow-y-hidden -mx-1 px-1 flex-1">
-            <div className="flex gap-2.5 w-max">
-              {allCards.filter((card) => !history.some((h) => h.card.id === card.id)).map((card) => (
-                <div
-                  key={card.id}
-                  onClick={() => handleSelect(card)}
-                  className={`cursor-pointer rounded-xl p-1 transition-all duration-200 shrink-0
-                    ${
-                      selectedCard?.id === card.id
-                        ? 'ring-2 ring-indigo-400 scale-110 shadow-lg shadow-indigo-500/30'
-                        : 'hover:scale-105 hover:shadow-md'
-                    }
-                    ${animating ? 'pointer-events-none opacity-70' : ''}
-                  `}
-                >
-                  <CardSVG card={card} size={72} />
-                </div>
-              ))}
+        <div className="flex flex-wrap gap-4 justify-center">
+          {RULE_CATEGORIES.map((cat) => (
+            <div key={cat.name} className="flex gap-2">
+              {cat.rules.map((rule) => {
+                const selected = guessIds.includes(rule.id)
+                return (
+                  <button
+                    key={rule.id}
+                    onClick={() => toggleGuess(rule.id)}
+                    className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-200
+                      ${
+                        selected
+                          ? 'bg-indigo-500 text-white ring-2 ring-indigo-300 scale-105 shadow-lg shadow-indigo-500/30'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:scale-105'
+                      }`}
+                  >
+                    <RuleTag id={rule.id} />
+                  </button>
+                )
+              })}
             </div>
-          </div>
+          ))}
+          {/* 提交按钮 */}
           <button
-            onClick={handlePlay}
-            disabled={!selectedCard || animating}
-            className="h-[80px] px-6 rounded-xl font-medium text-sm transition-all active:scale-95 shrink-0
-              disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100
-              bg-emerald-500 hover:bg-emerald-600 text-white"
+            onClick={handleGuess}
+            disabled={guessIds.length !== difficulty}
+            className="h-14 px-5 rounded-xl font-medium text-sm transition-all active:scale-95 shrink-0
+              bg-amber-500 hover:bg-amber-600 text-white
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
           >
-            出牌
+            提交
           </button>
         </div>
+        {difficulty === 2 && (
+          <p className={`text-center text-xs mt-2 ${guessIds.length > 2 ? 'text-red-400' : 'text-slate-500'}`}>
+            已选 {guessIds.length}/2
+          </p>
+        )}
       </div>
 
       {/* ====== 结果判定弹窗 ====== */}
