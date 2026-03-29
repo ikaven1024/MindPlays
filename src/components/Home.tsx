@@ -7,7 +7,7 @@ const games = [
   { path: '/minesweeper', name: '扫雷', icon: '💣', desc: '翻开安全格子，根据数字推理标记地雷', color: 'from-emerald-500 to-teal-500' },
   { path: '/sudoku', name: '数独', icon: '🧩', desc: '9×9格填入数字，每行每列每宫不重复', color: 'from-rose-500 to-red-500' },
   { path: '/wordle', name: '猜单词', icon: '📝', desc: '6次机会猜出一个5字母英文单词', color: 'from-indigo-500 to-violet-500' },
-  { path: '/trueorfalse', name: 'True-False', icon: '🔍', desc: '逆向推理隐藏规则，锻炼逻辑思维', color: 'from-cyan-500 to-blue-500' },
+  { path: '/trueorfalse', name: '真假推理', icon: '🔍', desc: '逆向推理隐藏规则，锻炼逻辑思维', color: 'from-cyan-500 to-blue-500' },
   { path: '/makenumbers', name: '凑十', icon: '🔺', desc: '三角棋盘放数字牌，凑成10即可收集', color: 'from-yellow-500 to-amber-500' },
 ]
 

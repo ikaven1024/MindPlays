@@ -286,7 +286,7 @@ export default function TrueOrFalse() {
       <div className="flex items-start justify-between mb-5">
         <div>
           <BackButton />
-          <h1 className="text-xl font-bold mt-2">True-False 逆向推理游戏</h1>
+          <h1 className="text-xl font-bold mt-2">真假推理</h1>
           <p className="text-slate-400 text-sm mt-0.5">猜隐藏规则，练逻辑思维</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
