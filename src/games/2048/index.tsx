@@ -85,7 +85,7 @@ function has2048(grid: Grid): boolean {
   return grid.some(row => row.some(v => v >= 2048))
 }
 
-// direction: 0=left, 1=up, 2=right, 3=down
+// direction: 0=left, 1=down, 2=right, 3=up
 const TILE_COLORS: Record<number, string> = {
   0: 'bg-slate-800',
   2: 'bg-slate-700 text-slate-200',
@@ -133,7 +133,7 @@ export default function Game2048() {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const map: Record<string, number> = {
-        ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3,
+        ArrowLeft: 0, ArrowDown: 1, ArrowRight: 2, ArrowUp: 3,
       }
       if (map[e.key] !== undefined) {
         e.preventDefault()
@@ -161,7 +161,7 @@ export default function Game2048() {
     if (absDx > absDy) {
       handleMove(dx > 0 ? 2 : 0)
     } else {
-      handleMove(dy > 0 ? 3 : 1)
+      handleMove(dy > 0 ? 1 : 3)
     }
     setTouchStart(null)
   }
