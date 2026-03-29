@@ -192,8 +192,6 @@ export default function TrueOrFalse() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [round, setRound] = useState(0)
-  const [animating, setAnimating] = useState(false)
-
   // 弹窗状态
   const [guessIds, setGuessIds] = useState<number[]>([])
   const [showResult, setShowResult] = useState(false)
@@ -214,10 +212,9 @@ export default function TrueOrFalse() {
 
   const handleSelect = useCallback(
     (card: Card) => {
-      if (animating) return
       setSelectedCard((prev) => (prev?.id === card.id ? null : card))
     },
-    [animating],
+    [],
   )
 
   const handlePlay = useCallback(() => {
@@ -225,23 +222,17 @@ export default function TrueOrFalse() {
       showTipModal()
       return
     }
-    if (animating) return
 
     const result = checkCard(selectedCard, hiddenRules)
     const newRound = round + 1
     setRound(newRound)
     setHistory((prev) => [...prev, { card: selectedCard, result, round: newRound }])
-    setAnimating(true)
+    setSelectedCard(null)
 
     setTimeout(() => {
       historyEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, 50)
-
-    setTimeout(() => {
-      setAnimating(false)
-      setSelectedCard(null)
-    }, 1000)
-  }, [selectedCard, hiddenRules, round, animating, showTipModal])
+  }, [selectedCard, hiddenRules, round, showTipModal])
 
   // 猜规则弹窗：切换选中某条规则
   const toggleGuess = useCallback(
@@ -271,7 +262,6 @@ export default function TrueOrFalse() {
     setSelectedCard(null)
     setHistory([])
     setRound(0)
-    setAnimating(false)
     setShowResult(false)
     setGuessIds([])
     setIsCorrect(false)
@@ -360,17 +350,15 @@ export default function TrueOrFalse() {
       <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 mb-4">
         <h2 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
           <span>🎴</span> 选择一张牌进行出牌
-          {selectedCard && (
-            <button
-              onClick={handlePlay}
-              disabled={animating}
-              className="ml-auto px-4 py-1.5 rounded-lg font-medium text-sm transition-all active:scale-95
-                bg-emerald-500 hover:bg-emerald-600 text-white
-                disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              出牌
-            </button>
-          )}
+          <button
+            onClick={handlePlay}
+            disabled={!selectedCard}
+            className="ml-auto px-4 py-1.5 rounded-lg font-medium text-sm transition-all active:scale-95
+              bg-emerald-500 hover:bg-emerald-600 text-white
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+          >
+            出牌
+          </button>
         </h2>
         <div className="grid grid-cols-8 gap-1.5 justify-items-center">
           {allCards
@@ -394,7 +382,6 @@ export default function TrueOrFalse() {
                     ? 'ring-2 ring-indigo-400 scale-110 shadow-lg shadow-indigo-500/30'
                     : 'hover:scale-105 hover:shadow-md'
                 }
-                ${animating ? 'pointer-events-none opacity-70' : ''}
               `}
             >
               <CardSVG card={card} size={56} />
